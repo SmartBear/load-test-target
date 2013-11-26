@@ -58,7 +58,9 @@ public class ServerTest
 				final ResponsesProvider mockResponses = mock( ResponsesProvider.class );
 				when( mockResponses.nextResponse( MediaType.APPLICATION_JSON_TYPE ) )
 						.thenReturn( "A Json response" );
-				//TODO mock some more responses
+				when( mockResponses.nextResponse( MediaType.APPLICATION_XML_TYPE ) )
+						.thenReturn( "A Xml response" );
+
 				bind( ResponsesProvider.class ).toInstance( mockResponses );
 			}
 		} );
@@ -90,6 +92,21 @@ public class ServerTest
 		String response = resp.getEntity( String.class );
 
 		assertThat( response, is( equalTo( "A Json response" ) ) );
+
+	}
+
+	@Test
+	public void xmlResponsesShouldBeCreated() {
+		Client client = Client.create( new DefaultClientConfig() );
+		WebResource service = client.resource( getBaseURI() );
+
+		ClientResponse resp = service
+				.accept( MediaType.APPLICATION_XML )
+				.get( ClientResponse.class );
+
+		String response = resp.getEntity( String.class );
+
+		assertThat( response, is( equalTo( "A Xml response" ) ) );
 
 	}
 
