@@ -62,8 +62,9 @@ public class ServerTest extends TestClient {
 
     @Test
     public void serverMapsRequestsToResourcesCorrectly() {
-        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON, "medium" );
+        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON, medium() );
         String expected = loader.read( PreFabricatedResponses.Resources.mediumJsonResource() );
+        System.out.println( "Lenght of response: " + expected.length() );
 
         assertThat( response.getStatus(), is( 200 ) );
         assertThat( asString( response ), is( equalTo( expected ) ) );

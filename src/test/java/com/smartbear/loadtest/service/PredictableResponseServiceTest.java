@@ -21,8 +21,10 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.URI;
 
+import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,6 +36,7 @@ public class PredictableResponseServiceTest extends TestClient {
 
     final URI BASE_URI = getBaseURI();
     HttpServer server;
+    final int delay = 250;
 
     @Override
     protected URI getBaseURI() {
@@ -48,17 +51,15 @@ public class PredictableResponseServiceTest extends TestClient {
             @Override
             protected void configureServlets() {
                 final ResponsesProvider mockResponses = mock( ResponsesProvider.class );
-                when( mockResponses.nextResponse( MediaType.APPLICATION_JSON_TYPE ) )
-                        .thenReturn( "A Json response" );
-                when( mockResponses.nextResponse( MediaType.APPLICATION_XML_TYPE ) )
-                        .thenReturn( "A Xml response" );
-                when( mockResponses.responseFor( MediaType.APPLICATION_XML_TYPE, "small" ) )
+                when( mockResponses.responseFor( MediaType.APPLICATION_XML_TYPE, small(), "0" ) )
                         .thenReturn( "Small Xml response" );
-                when( mockResponses.responseFor( MediaType.APPLICATION_XML_TYPE, "large" ) )
+                when( mockResponses.responseFor( MediaType.APPLICATION_XML_TYPE, large(), "0" ) )
                         .thenReturn( "Large Xml response" );
-                when( mockResponses.responseFor( MediaType.APPLICATION_JSON_TYPE, "small" ) )
+                when( mockResponses.responseFor( MediaType.APPLICATION_JSON_TYPE, small(), "0" ) )
                         .thenReturn( "Small Json response" );
-                when( mockResponses.responseFor( MediaType.APPLICATION_JSON_TYPE, "large" ) )
+                when( mockResponses.responseFor( MediaType.APPLICATION_JSON_TYPE, small(), Integer.toString( delay ) ) )
+                        .thenReturn( "Small Json response" );
+                when( mockResponses.responseFor( MediaType.APPLICATION_JSON_TYPE, large(), "0" ) )
                         .thenReturn( "Large Json response" );
 
                 bind( ResponsesProvider.class ).toInstance( mockResponses );
@@ -80,50 +81,47 @@ public class PredictableResponseServiceTest extends TestClient {
     }
 
     @Test
-    public void jsonResponsesShouldBeCreated() {
-        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON );
-        assertThat( response.getStatus(), is( 200 ) );
-        assertThat( asString( response ), is( equalTo( "A Json response" ) ) );
-    }
-
-    @Test
     public void jsonResponseDependsOnPathGiven_small() {
-        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON, "small" );
+        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON, small() );
         assertThat( response.getStatus(), is( 200 ) );
         assertThat( asString( response ), is( equalTo( "Small Json response" ) ) );
     }
 
     @Test
     public void jsonResponseDependsOnPathGiven_large() {
-        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON, "large" );
+        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON, large() );
         assertThat( response.getStatus(), is( 200 ) );
         assertThat( asString( response ), is( equalTo( "Large Json response" ) ) );
     }
 
     @Test
-    public void xmlResponsesShouldBeCreated() {
-        ClientResponse response = makeRequest( MediaType.APPLICATION_XML );
+    public void jsonResponseDependsOnPathGiven_small_slow() {
+        long before = System.currentTimeMillis();
+        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON, small(), "delay=" + delay );
+        long after = System.currentTimeMillis();
+
+        assertThat( after, greaterThan( before + delay ) );
         assertThat( response.getStatus(), is( 200 ) );
-        assertThat( asString( response ), is( equalTo( "A Xml response" ) ) );
+        assertThat( asString( response ), is( equalTo( "Small Json response" ) ) );
     }
 
     @Test
     public void xmlResponseDependsOnPathGiven_small() {
-        ClientResponse response = makeRequest( MediaType.APPLICATION_XML, "small" );
+        ClientResponse response = makeRequest( MediaType.APPLICATION_XML, small() );
         assertThat( response.getStatus(), is( 200 ) );
         assertThat( asString( response ), is( equalTo( "Small Xml response" ) ) );
     }
 
     @Test
     public void xmlResponseDependsOnPathGiven_large() {
-        ClientResponse response = makeRequest( MediaType.APPLICATION_XML, "large" );
+        ClientResponse response = makeRequest( MediaType.APPLICATION_XML, large() );
         assertThat( response.getStatus(), is( 200 ) );
         assertThat( asString( response ), is( equalTo( "Large Xml response" ) ) );
     }
 
     @Test
     public void badPathReturnsNoContent() {
-        ClientResponse response = makeRequest( MediaType.APPLICATION_XML, "BAD" );
+        ClientResponse response = makeRequest( MediaType.APPLICATION_XML, asList( "BAD" ) );
         assertThat( response.getStatus(), is( 204 ) );
     }
 

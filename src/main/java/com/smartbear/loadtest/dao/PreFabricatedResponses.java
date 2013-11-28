@@ -6,6 +6,8 @@ import org.apache.log4j.Logger;
 import javax.inject.Inject;
 import javax.ws.rs.core.MediaType;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author renato
@@ -37,14 +39,14 @@ public class PreFabricatedResponses implements ResponsesProvider {
     }
 
     @Override
-    public String nextResponse( MediaType mediaType ) {
-        if ( mediaType == MediaType.APPLICATION_XML_TYPE )
-            return smallXml;
-        else
-            return smallJson;
+    public String responseFor( MediaType mediaType, List<String> parameters, String... queries ) {
+        log.debug( "Getting response for " + mediaType + ", params: " + parameters +
+                ", queries: " + Arrays.toString( queries ) );
+        String size = parameters.get( 0 );
+        return response( mediaType, size );
     }
 
-    private String nextResponse( MediaType mediaType, String size ) {
+    private String response( MediaType mediaType, String size ) {
         switch ( size ) {
             case "large":
                 return mediaType == MediaType.APPLICATION_XML_TYPE ?
@@ -56,16 +58,6 @@ public class PreFabricatedResponses implements ResponsesProvider {
             default:
                 return mediaType == MediaType.APPLICATION_XML_TYPE ?
                         smallXml : smallJson;
-        }
-    }
-
-    @Override
-    public String responseFor( MediaType mediaType, String... parameters ) {
-        if ( parameters.length == 0 ) {
-            return nextResponse( mediaType );
-        } else {
-            String size = parameters[ 0 ];
-            return nextResponse( mediaType, size );
         }
     }
 
