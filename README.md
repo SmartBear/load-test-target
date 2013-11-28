@@ -64,3 +64,8 @@ mvn clean install
 This creates a WAR file in the `target` folder. This file can be deployed in any Servlet Container like Jetty or Tomcat.
 
 In the case of Tomcat, just drop the WAR into the Tomcat's `webapps` folder and Tomcat will get it started immediately.
+You might want to rename the WAR to something like `"loadtestapp.war"` so that the path to the application will become:
+
+```
+http://localhost:8080/loadtestapp/loadtest/
+```
