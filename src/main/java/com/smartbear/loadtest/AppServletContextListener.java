@@ -7,6 +7,8 @@ import com.google.inject.servlet.ServletModule;
 import com.smartbear.loadtest.dao.PreFabricatedResponses;
 import com.smartbear.loadtest.dao.ResponsesProvider;
 import com.smartbear.loadtest.service.PredictableResponseService;
+import com.smartbear.loadtest.utils.FileResourceLoader;
+import com.smartbear.loadtest.utils.ResourceLoader;
 import com.sun.jersey.api.core.PackagesResourceConfig;
 import com.sun.jersey.api.core.ResourceConfig;
 import com.sun.jersey.guice.spi.container.servlet.GuiceContainer;
@@ -14,30 +16,26 @@ import com.sun.jersey.guice.spi.container.servlet.GuiceContainer;
 /**
  * @author Renato
  */
-public class AppServletContextListener extends GuiceServletContextListener
-{
+public class AppServletContextListener extends GuiceServletContextListener {
 
-	@Override
-	protected Injector getInjector()
-	{
-		final ResourceConfig rc = new PackagesResourceConfig( PredictableResponseService.class.getPackage().getName() );
+    @Override
+    protected Injector getInjector() {
+        final ResourceConfig rc = new PackagesResourceConfig( PredictableResponseService.class.getPackage().getName() );
 
-		return Guice.createInjector( new ServletModule()
-		{
-			@Override
-			protected void configureServlets()
-			{
-				bind( ResponsesProvider.class ).to( PreFabricatedResponses.class );
+        return Guice.createInjector( new ServletModule() {
+            @Override
+            protected void configureServlets() {
+                bind( ResponsesProvider.class ).to( PreFabricatedResponses.class );
+                bind( ResourceLoader.class ).to( FileResourceLoader.class );
 
-				for( Class<?> resource : rc.getClasses() )
-				{
-					System.out.println( "Binding resource: " + resource.getName() );
-					bind( resource );
-				}
+                for ( Class<?> resource : rc.getClasses() ) {
+                    System.out.println( "Binding resource: " + resource.getName() );
+                    bind( resource );
+                }
 
-				serve( "loadtest/*" ).with( GuiceContainer.class );
-			}
-		} );
-	}
+                serve( "loadtest/*" ).with( GuiceContainer.class );
+            }
+        } );
+    }
 
 }
