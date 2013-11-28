@@ -6,6 +6,11 @@ A load test target application. The root path for this application is:
 http://yourserver.com/loadtest
 ```
 
+The WADL can be found at:
+
+```
+/loadtest/application.wadl
+```
 
 
 ## Services
