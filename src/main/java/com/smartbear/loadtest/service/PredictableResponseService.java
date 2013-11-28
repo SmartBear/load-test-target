@@ -6,16 +6,16 @@ import org.apache.log4j.Logger;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static javax.ws.rs.core.MediaType.APPLICATION_XML;
+import static javax.ws.rs.core.MediaType.*;
 
 /**
  * @author renato
  */
-@Path( "" )
+@Path( "predictable" )
 public class PredictableResponseService
 {
 
@@ -44,5 +44,19 @@ public class PredictableResponseService
 		log.debug( "Asked for XML response with no parameters" );
 		return responses.nextResponse( MediaType.APPLICATION_XML_TYPE );
 	}
+
+    @GET
+    @Produces( APPLICATION_JSON )
+    @Path( "{size}" )
+    public String getJsonResponse( @PathParam( "size" ) String size ) {
+        return responses.responseFor( APPLICATION_JSON_TYPE, size );
+    }
+
+    @GET
+    @Produces( APPLICATION_XML )
+    @Path( "{size}" )
+    public String getXmlResponse( @PathParam( "size" ) String size ) {
+        return responses.responseFor( APPLICATION_XML_TYPE, size );
+    }
 
 }

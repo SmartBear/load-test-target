@@ -34,88 +34,127 @@ import static org.mockito.Mockito.when;
 /**
  * User: Renato
  */
-public class ServerTest
-{
+public class ServerTest {
 
-	static final URI BASE_URI = getBaseURI();
-	HttpServer server;
+    static final URI BASE_URI = getBaseURI();
+    HttpServer server;
+    Client client = Client.create( new DefaultClientConfig() );
+    WebResource service = client.resource( getBaseURI() );
 
-	private static URI getBaseURI()
-	{
-		return UriBuilder.fromUri( "http://localhost/" ).port( 9998 ).build();
-	}
+    private static URI getBaseURI() {
+        return UriBuilder.fromUri( "http://localhost/" ).port( 9998 ).build();
+    }
 
-	@Before
-	public void startServer() throws IOException
-	{
-		System.out.println( "Starting grizzly..." );
+    @Before
+    public void startServer() throws IOException {
+        System.out.println( "Starting grizzly..." );
 
-		Injector injector = Guice.createInjector( new ServletModule()
-		{
-			@Override
-			protected void configureServlets()
-			{
-				final ResponsesProvider mockResponses = mock( ResponsesProvider.class );
-				when( mockResponses.nextResponse( MediaType.APPLICATION_JSON_TYPE ) )
-						.thenReturn( "A Json response" );
-				when( mockResponses.nextResponse( MediaType.APPLICATION_XML_TYPE ) )
-						.thenReturn( "A Xml response" );
+        Injector injector = Guice.createInjector( new ServletModule() {
+            @Override
+            protected void configureServlets() {
+                final ResponsesProvider mockResponses = mock( ResponsesProvider.class );
+                when( mockResponses.nextResponse( MediaType.APPLICATION_JSON_TYPE ) )
+                        .thenReturn( "A Json response" );
+                when( mockResponses.nextResponse( MediaType.APPLICATION_XML_TYPE ) )
+                        .thenReturn( "A Xml response" );
+                when( mockResponses.responseFor( MediaType.APPLICATION_XML_TYPE, "small" ) )
+                        .thenReturn( "Small Xml response" );
+                when( mockResponses.responseFor( MediaType.APPLICATION_XML_TYPE, "large" ) )
+                        .thenReturn( "Large Xml response" );
+                when( mockResponses.responseFor( MediaType.APPLICATION_JSON_TYPE, "small" ) )
+                        .thenReturn( "Small Json response" );
+                when( mockResponses.responseFor( MediaType.APPLICATION_JSON_TYPE, "large" ) )
+                        .thenReturn( "Large Json response" );
 
-				bind( ResponsesProvider.class ).toInstance( mockResponses );
-			}
-		} );
+                bind( ResponsesProvider.class ).toInstance( mockResponses );
+            }
+        } );
 
-		ResourceConfig rc = new PackagesResourceConfig( PredictableResponseService.class.getPackage().getName() );
-		IoCComponentProviderFactory ioc = new GuiceComponentProviderFactory( rc, injector );
-		server = GrizzlyServerFactory.createHttpServer( BASE_URI, rc, ioc );
+        ResourceConfig rc = new PackagesResourceConfig( PredictableResponseService.class.getPackage().getName() );
+        IoCComponentProviderFactory ioc = new GuiceComponentProviderFactory( rc, injector );
+        server = GrizzlyServerFactory.createHttpServer( BASE_URI + "loadtest/", rc, ioc );
 
-		System.out.println( String.format( "Jersey app started with WADL available at "
-				+ "%sservices/application.wadl\nTry out %s{app_name}\nHit enter to stop it...",
-				BASE_URI, BASE_URI ) );
-	}
+        System.out.println( String.format( "Jersey app started with WADL available at "
+                + "%sloadtest/application.wadl\nTry out %s{app_name}\nHit enter to stop it...",
+                BASE_URI, BASE_URI ) );
+    }
 
-	@After
-	public void stopServer()
-	{
-		server.stop();
-	}
+    @After
+    public void stopServer() {
+        server.stop();
+    }
 
-	@Test
-	public void jsonResponsesShouldBeCreated() {
-		Client client = Client.create( new DefaultClientConfig() );
-		WebResource service = client.resource( getBaseURI() );
+    @Test
+    public void jsonResponsesShouldBeCreated() {
+        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON );
+        assertThat( response.getStatus(), is( 200 ) );
+        assertThat( asString( response ), is( equalTo( "A Json response" ) ) );
+    }
 
-		ClientResponse resp = service
-				.accept( MediaType.APPLICATION_JSON )
-				.get( ClientResponse.class );
+    @Test
+    public void jsonResponseDependsOnPathGiven_small() {
+        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON, "small" );
+        assertThat( response.getStatus(), is( 200 ) );
+        assertThat( asString( response ), is( equalTo( "Small Json response" ) ) );
+    }
 
-		String response = resp.getEntity( String.class );
+    @Test
+    public void jsonResponseDependsOnPathGiven_large() {
+        ClientResponse response = makeRequest( MediaType.APPLICATION_JSON, "large" );
+        assertThat( response.getStatus(), is( 200 ) );
+        assertThat( asString( response ), is( equalTo( "Large Json response" ) ) );
+    }
 
-		assertThat( response, is( equalTo( "A Json response" ) ) );
+    @Test
+    public void xmlResponsesShouldBeCreated() {
+        ClientResponse response = makeRequest( MediaType.APPLICATION_XML );
+        assertThat( response.getStatus(), is( 200 ) );
+        assertThat( asString( response ), is( equalTo( "A Xml response" ) ) );
+    }
 
-	}
+    @Test
+    public void xmlResponseDependsOnPathGiven_small() {
+        ClientResponse response = makeRequest( MediaType.APPLICATION_XML, "small" );
+        assertThat( response.getStatus(), is( 200 ) );
+        assertThat( asString( response ), is( equalTo( "Small Xml response" ) ) );
+    }
 
-	@Test
-	public void xmlResponsesShouldBeCreated() {
-		Client client = Client.create( new DefaultClientConfig() );
-		WebResource service = client.resource( getBaseURI() );
+    @Test
+    public void xmlResponseDependsOnPathGiven_large() {
+        ClientResponse response = makeRequest( MediaType.APPLICATION_XML, "large" );
+        assertThat( response.getStatus(), is( 200 ) );
+        assertThat( asString( response ), is( equalTo( "Large Xml response" ) ) );
+    }
 
-		ClientResponse resp = service
-				.accept( MediaType.APPLICATION_XML )
-				.get( ClientResponse.class );
+    @Test
+    public void badPathReturnsNoContent() {
+        ClientResponse response = makeRequest( MediaType.APPLICATION_XML, "BAD" );
+        assertThat( response.getStatus(), is( 204 ) );
+    }
 
-		String response = resp.getEntity( String.class );
+    private ClientResponse makeRequest( String accept, String... path ) {
+        return toResource( path )
+                .accept( accept )
+                .get( ClientResponse.class );
+    }
 
-		assertThat( response, is( equalTo( "A Xml response" ) ) );
+    private String asString( ClientResponse response ) {
+        return response.getEntity( String.class );
+    }
 
-	}
+    private WebResource toResource( String... path ) {
+        WebResource resource = service.path( "loadtest" ).path( "predictable" );
+        for ( String p : path ) {
+            resource = resource.path( p );
+        }
+        return resource;
+    }
 
-	public static void main( String[] args ) throws Exception
-	{
-		ServerTest test = new ServerTest();
-		test.startServer();
-		System.in.read(); // hit enter to stop the server
-		test.server.stop();
-	}
+    public static void main( String[] args ) throws Exception {
+        ServerTest test = new ServerTest();
+        test.startServer();
+        System.in.read(); // hit enter to stop the server
+        test.server.stop();
+    }
 
 }

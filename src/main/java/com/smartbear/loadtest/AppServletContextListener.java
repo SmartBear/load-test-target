@@ -35,7 +35,7 @@ public class AppServletContextListener extends GuiceServletContextListener
 					bind( resource );
 				}
 
-				serve( "/*" ).with( GuiceContainer.class );
+				serve( "loadtest/*" ).with( GuiceContainer.class );
 			}
 		} );
 	}
