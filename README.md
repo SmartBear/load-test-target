@@ -12,6 +12,11 @@ The WADL can be found at:
 /loadtest/application.wadl
 ```
 
+This app is currently deployed at:
+
+```
+http://weblogic.sthlm.smartbear.local:8080/loadtest/
+```
 
 ## Services
 
